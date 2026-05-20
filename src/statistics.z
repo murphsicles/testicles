@@ -127,7 +127,7 @@ fn remove_outliers(sorted: []f64) -> []f64 {
 }
 
 // Compute minimum of a sample
-fn min(samples: []f64) -> f64 {
+fn min_val(samples: []f64) -> f64 {
     if len(samples) == 0 {
         return 0.0;
     }
@@ -143,7 +143,7 @@ fn min(samples: []f64) -> f64 {
 }
 
 // Compute maximum of a sample
-fn max(samples: []f64) -> f64 {
+fn max_val(samples: []f64) -> f64 {
     if len(samples) == 0 {
         return 0.0;
     }

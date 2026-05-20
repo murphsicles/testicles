@@ -1,13 +1,12 @@
 // testicles.z — The Ultimate Zeta Benchmarking Library
 // Statistics-driven microbenchmarking for Zeta.
-// Pure Zeta. Zero Rust. Unrivaled.
 
 use timing;
 use runner;
-use report_text;
+use report::text;
 
 // Re-export public types
-pub use runner::Config;
+pub use runner::BenchResults;
 pub use runner::Analysis;
 
 // A benchmark function
@@ -22,13 +21,13 @@ pub fn bench_function(name: string, func: fn()) -> Benchmark {
 }
 
 // Run a benchmark group and print results
-pub fn criterion_group(name: string, benches: []Benchmark) {
+pub fn bench_group(name: string, benches: []Benchmark) {
     println!("");
     println!("{}", name);
     println!("{}", str_repeat("-", len(name)));
 
     let mut all_results: [runner::Analysis] = [];
-    let config: runner::Config = runner::default_config();
+    let mut results_len: i64 = 0;
 
     let mut i: i64 = 0;
     while i < len(benches) {
@@ -36,15 +35,25 @@ pub fn criterion_group(name: string, benches: []Benchmark) {
         print!("  {} ... ", bench.name);
 
         // Run the benchmark
-        let results: runner::Results = runner::run_benchmark(bench.name, bench.func, config);
+        let results: runner::BenchResults = runner::run_benchmark(bench.name, bench.func);
         let analysis: runner::Analysis = runner::analyze(results);
 
-        all_results += analysis;
+        // Build result array manually
+        all_results[results_len] = analysis;
+        results_len += 1;
         i += 1;
     }
 
+    // Trim to actual size
+    let mut final_results: [runner::Analysis] = [];
+    let mut j: i64 = 0;
+    while j < results_len {
+        final_results[j] = all_results[j];
+        j += 1;
+    }
+
     // Print summary table
-    report_text::print_summary(all_results);
+    report::text::print_summary(final_results);
 }
 
 // Helper: repeat a string n times

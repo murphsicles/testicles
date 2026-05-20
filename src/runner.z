@@ -78,7 +78,7 @@ fn run_benchmark(name: string, body: fn()) -> BenchResults {
     while s < sample_count {
         let (elapsed, count): (f64, i64) = measure_sample(body, iters);
         let ns_per_iter: f64 = elapsed / (count as f64);
-        samples += ns_per_iter;
+        samples[s] = ns_per_iter;
         s += 1;
     }
 

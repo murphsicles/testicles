@@ -2,6 +2,7 @@
 // Prints formatted benchmark results with summary tables.
 
 use statistics;
+use runner;
 
 // Format a number with 2 decimal places
 fn fmt_f64(val: f64) -> string {

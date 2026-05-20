@@ -3,6 +3,7 @@
 // significant performance changes.
 
 use statistics;
+use runner;
 
 // Comparison result
 struct Comparison {

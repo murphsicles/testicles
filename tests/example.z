@@ -46,7 +46,7 @@ fn bench_modulo() {
 }
 
 fn main() {
-    testicles::criterion_group("testicles demo benchmarks", [
+    testicles::bench_group("testicles demo benchmarks", [
         testicles::bench_function("sum 1000 squares", bench_sum),
         testicles::bench_function("fill 1024 array", bench_array_fill),
         testicles::bench_function("concat 100 strings", bench_str_concat),
