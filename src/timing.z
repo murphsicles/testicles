@@ -1,0 +1,19 @@
+// timing.z — High-precision timing for testicles benchmarks
+// Uses Zeta's built-in monotonic_ns() directly.
+// All measurements are in nanoseconds as f64 for arithmetic.
+
+// Measure the elapsed time of a function call in nanoseconds
+fn measure_ns(body: fn()) -> f64 {
+    let start: i64 = monotonic_ns();
+    body();
+    let end: i64 = monotonic_ns();
+    return (end - start) as f64;
+}
+
+// Sleep/wait for approximately `ns` nanoseconds (busy-wait)
+fn busy_wait_ns(ns: i64) {
+    let deadline: i64 = monotonic_ns() + ns;
+    while monotonic_ns() < deadline {
+        // Spin
+    }
+}

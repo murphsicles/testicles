@@ -1,0 +1,100 @@
+// report/text.z — Console report formatting for testicles
+// Prints formatted benchmark results with summary tables.
+
+use statistics;
+
+// Format a number with 2 decimal places
+fn fmt_f64(val: f64) -> string {
+    let scaled: i64 = (val * 100.0) as i64;
+    let int_part: i64 = scaled / 100;
+    let frac_part: i64 = scaled % 100;
+    if frac_part < 0 {
+        return int_part as string + "." + "00";
+    }
+    let frac_str: string = if frac_part < 10 {
+        "0" + (frac_part as string)
+    } else {
+        frac_part as string
+    };
+    return (int_part as string) + "." + frac_str;
+}
+
+// Format nanoseconds to a human-readable string
+fn fmt_time(ns: f64) -> string {
+    if ns >= 1_000_000_000.0 {
+        return fmt_f64(ns / 1_000_000_000.0) + " s";
+    }
+    if ns >= 1_000_000.0 {
+        return fmt_f64(ns / 1_000_000.0) + " ms";
+    }
+    if ns >= 1_000.0 {
+        return fmt_f64(ns / 1_000.0) + " us";
+    }
+    return fmt_f64(ns) + " ns";
+}
+
+// Format time with appropriate unit for throughput
+fn fmt_throughput(ns_per_iter: f64) -> string {
+    if ns_per_iter <= 0.0 {
+        return "inf";
+    }
+    let ops_per_sec: f64 = 1_000_000_000.0 / ns_per_iter;
+    if ops_per_sec >= 1_000_000_000.0 {
+        return fmt_f64(ops_per_sec / 1_000_000_000.0) + " G/s";
+    }
+    if ops_per_sec >= 1_000_000.0 {
+        return fmt_f64(ops_per_sec / 1_000_000.0) + " M/s";
+    }
+    if ops_per_sec >= 1_000.0 {
+        return fmt_f64(ops_per_sec / 1_000.0) + " K/s";
+    }
+    return fmt_f64(ops_per_sec) + " /s";
+}
+
+// Print the header row of the summary table
+fn print_header() {
+    let hdr: string = "";
+    println!("");
+    println!("  {:30} {:>10} {:>10} {:>8} {:>10} {:>8}", 
+             "Benchmark", "Mean", "Std Dev", "CV", "Median", "Throughput");
+    println!("  {}", str_repeat("-", 80));
+}
+
+// Print a single result row
+fn print_result(analysis: runner::Analysis) {
+    let name: string = analysis.name;
+    let mean_str: string = fmt_time(analysis.mean);
+    let std_str: string = if analysis.std_dev < analysis.mean {
+        fmt_time(analysis.std_dev)
+    } else {
+        ">100%"
+    };
+    let cv_str: string = fmt_f64(analysis.cv * 100.0) + "%";
+    let med_str: string = fmt_time(analysis.median);
+    let tp_str: string = fmt_throughput(analysis.mean);
+
+    println!("  {:30} {:>10} {:>10} {:>8} {:>10} {:>8}",
+             name, mean_str, std_str, cv_str, med_str, tp_str);
+}
+
+// Print the full summary table
+fn print_summary(results: []runner::Analysis) {
+    print_header();
+    let mut i: i64 = 0;
+    while i < len(results) {
+        print_result(results[i]);
+        i += 1;
+    }
+    println!("");
+}
+
+// Helper: repeat a string n times
+fn str_repeat(s: string, n: i64) -> string {
+    let mut result: string = "";
+    let mut i: i64 = 0;
+    while i < n {
+        result += s;
+        i += 1;
+    }
+    return result;
+}

@@ -1,0 +1,55 @@
+// testicles example — benchmark SHA256 hashing, hashmap lookup, and string operations
+use testicles;
+
+// Benchmark: computing a simple sum
+fn bench_sum() {
+    let mut sum: i64 = 0;
+    let mut i: i64 = 0;
+    while i < 1000 {
+        sum += i * i;
+        i += 1;
+    }
+    _ = sum;  // Prevent optimization
+}
+
+// Benchmark: array allocation and fill
+fn bench_array_fill() {
+    let arr: [i64; 1024] = [0; 1024];
+    let mut i: i64 = 0;
+    while i < 1024 {
+        arr[i] = i * 2;
+        i += 1;
+    }
+    _ = arr;
+}
+
+// Benchmark: string concatenation
+fn bench_str_concat() {
+    let mut s: string = "";
+    let mut i: i64 = 0;
+    while i < 100 {
+        s += "hello";
+        i += 1;
+    }
+    _ = s;
+}
+
+// Benchmark: modulo operation (arithmetic)
+fn bench_modulo() {
+    let mut sum: i64 = 0;
+    let mut i: i64 = 0;
+    while i < 10000 {
+        sum += i % 7;
+        i += 1;
+    }
+    _ = sum;
+}
+
+fn main() {
+    testicles::criterion_group("testicles demo benchmarks", [
+        testicles::bench_function("sum 1000 squares", bench_sum),
+        testicles::bench_function("fill 1024 array", bench_array_fill),
+        testicles::bench_function("concat 100 strings", bench_str_concat),
+        testicles::bench_function("modulo 10000", bench_modulo),
+    ]);
+}

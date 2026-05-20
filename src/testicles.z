@@ -1,0 +1,59 @@
+// testicles.z — The Ultimate Zeta Benchmarking Library
+// Statistics-driven microbenchmarking for Zeta.
+// Pure Zeta. Zero Rust. Unrivaled.
+
+use timing;
+use runner;
+use report_text;
+
+// Re-export public types
+pub use runner::Config;
+pub use runner::Analysis;
+
+// A benchmark function
+pub struct Benchmark {
+    name: string,
+    func: fn(),
+}
+
+// Define a named benchmark
+pub fn bench_function(name: string, func: fn()) -> Benchmark {
+    return Benchmark { name: name, func: func };
+}
+
+// Run a benchmark group and print results
+pub fn criterion_group(name: string, benches: []Benchmark) {
+    println!("");
+    println!("{}", name);
+    println!("{}", str_repeat("-", len(name)));
+
+    let mut all_results: [runner::Analysis] = [];
+    let config: runner::Config = runner::default_config();
+
+    let mut i: i64 = 0;
+    while i < len(benches) {
+        let bench: Benchmark = benches[i];
+        print!("  {} ... ", bench.name);
+
+        // Run the benchmark
+        let results: runner::Results = runner::run_benchmark(bench.name, bench.func, config);
+        let analysis: runner::Analysis = runner::analyze(results);
+
+        all_results += analysis;
+        i += 1;
+    }
+
+    // Print summary table
+    report_text::print_summary(all_results);
+}
+
+// Helper: repeat a string n times
+fn str_repeat(s: string, n: i64) -> string {
+    let mut result: string = "";
+    let mut i: i64 = 0;
+    while i < n {
+        result += s;
+        i += 1;
+    }
+    return result;
+}

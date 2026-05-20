@@ -1,0 +1,157 @@
+// runner.z — Benchmark runner for testicles
+// Handles warm-up, iteration estimation, and measurement collection.
+
+use statistics;
+
+// Benchmark configuration (as parallel arrays of values)
+// Number of warm-up iterations
+fn default_warm_up_count() -> i64 { return 3; }
+// Number of timing samples
+fn default_sample_count() -> i64 { return 100; }
+// Minimum measurement time per sample (nanoseconds)
+fn default_min_measurement_ns() -> i64 { return 100_000_000; }
+
+// Run warm-up iterations to stabilize CPU caches/clock
+fn warm_up(body: fn(), count: i64) -> f64 {
+    if count <= 0 {
+        return 0.0;
+    }
+    let start: i64 = monotonic_ns();
+    let mut i: i64 = 0;
+    while i < count {
+        body();
+        i += 1;
+    }
+    let end: i64 = monotonic_ns();
+    return (end - start) as f64;
+}
+
+// Estimate how many iterations fill the minimum measurement time
+fn estimate_iterations(body: fn(), min_ns: i64) -> i64 {
+    let start: i64 = monotonic_ns();
+    body();
+    let elapsed: f64 = (monotonic_ns() - start) as f64;
+
+    if elapsed <= 0.0 {
+        return 1_000_000;
+    }
+
+    let est: f64 = (min_ns as f64) / elapsed;
+    if est < 1.0 { return 1; }
+    if est > 10_000_000 { return 10_000_000; }
+    return est as i64;
+}
+
+// Run a single measurement sample: time `iterations` calls
+fn measure_sample(body: fn(), iterations: i64) -> (f64, i64) {
+    let start: i64 = monotonic_ns();
+    let mut i: i64 = 0;
+    while i < iterations {
+        body();
+        i += 1;
+    }
+    let elapsed: f64 = (monotonic_ns() - start) as f64;
+    return (elapsed, iterations);
+}
+
+// Benchmark results: name + array of ns-per-iteration samples
+struct BenchResults {
+    name: string,
+    ns_per_iter: [f64],
+}
+
+// Run the full benchmark
+fn run_benchmark(name: string, body: fn()) -> BenchResults {
+    let warm_up_count: i64 = default_warm_up_count();
+    let sample_count: i64 = default_sample_count();
+    let min_measurement_ns: i64 = default_min_measurement_ns();
+
+    // Phase 1: Warm-up
+    _ = warm_up(body, warm_up_count);
+
+    // Phase 2: Estimate iterations per sample
+    let iters: i64 = estimate_iterations(body, min_measurement_ns);
+
+    // Phase 3: Collect samples
+    let mut samples: [f64] = [];
+    let mut s: i64 = 0;
+    while s < sample_count {
+        let (elapsed, count): (f64, i64) = measure_sample(body, iters);
+        let ns_per_iter: f64 = elapsed / (count as f64);
+        samples += ns_per_iter;
+        s += 1;
+    }
+
+    return BenchResults { name: name, ns_per_iter: samples };
+}
+
+// Analysis results
+struct Analysis {
+    name: string,
+    samples: i64,
+    mean: f64,
+    std_dev: f64,
+    cv: f64,
+    median: f64,
+    min_val: f64,
+    max_val: f64,
+    percentile_95: f64,
+    percentile_99: f64,
+    slope: f64,
+}
+
+// Analyze benchmark results
+fn analyze(results: BenchResults) -> Analysis {
+    let s: []f64 = results.ns_per_iter;
+    let n: i64 = len(s);
+
+    let mean_val: f64 = statistics::mean(s);
+    let std_dev_val: f64 = statistics::std_dev(s, mean_val);
+    let s_min: f64 = statistics::min_val(s);
+    let s_max: f64 = statistics::max_val(s);
+    let cv_val: f64 = statistics::cv(std_dev_val, mean_val);
+
+    // Sort for median/percentiles
+    let mut sorted: [f64] = [] + s;
+    let mut i: i64 = 0;
+    while i < n {
+        let mut j: i64 = i + 1;
+        while j < n {
+            if sorted[j] < sorted[i] {
+                let tmp: f64 = sorted[i];
+                sorted[i] = sorted[j];
+                sorted[j] = tmp;
+            }
+            j += 1;
+        }
+        i += 1;
+    }
+
+    let med: f64 = statistics::median(sorted);
+    let p95: f64 = statistics::percentile(sorted, 95.0);
+    let p99: f64 = statistics::percentile(sorted, 99.0);
+
+    // Slope estimation
+    let clean: []f64 = statistics::remove_outliers(sorted);
+    let mut x: [f64] = [];
+    let mut k: i64 = 0;
+    while k < len(clean) {
+        x += k as f64;
+        k += 1;
+    }
+    let (slope, _, _): (f64, f64, f64) = statistics::linear_regression(x, clean);
+
+    return Analysis {
+        name: results.name,
+        samples: n,
+        mean: mean_val,
+        std_dev: std_dev_val,
+        cv: cv_val,
+        median: med,
+        min_val: s_min,
+        max_val: s_max,
+        percentile_95: p95,
+        percentile_99: p99,
+        slope: slope,
+    };
+}

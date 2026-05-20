@@ -1,0 +1,88 @@
+// comparison.z — Benchmark comparison and regression detection for testicles
+// Compares two runs of the same benchmark and detects statistically
+// significant performance changes.
+
+use statistics;
+
+// Comparison result
+struct Comparison {
+    name: string,
+    old_mean: f64,
+    new_mean: f64,
+    change_pct: f64,    // Percentage change: (new - old) / old * 100
+    significant: bool,   // Statistically significant at 95% confidence
+    direction: string,   // "improved", "regressed", "unchanged"
+}
+
+// Compare two benchmark analyses
+fn compare(old_name: string, old: runner::Analysis, new: runner::Analysis) -> Comparison {
+    let change_pct: f64 = ((new.mean - old.mean) / old.mean) * 100.0;
+    
+    // Simple significance test: if the means differ by more than
+    // 3x the pooled standard error, it's significant
+    let pooled_se: f64 = (old.std_dev / (old.samples as f64).sqrt() 
+                        + new.std_dev / (new.samples as f64).sqrt()) / 2.0;
+    let diff: f64 = (new.mean - old.mean).abs();
+    let significant: bool = if pooled_se > 0.0 {
+        diff > 3.0 * pooled_se
+    } else {
+        diff > 0.0
+    };
+
+    let direction: string = if !significant {
+        "unchanged"
+    } else if new.mean < old.mean {
+        "improved"
+    } else {
+        "regressed"
+    };
+
+    return Comparison {
+        name: old_name,
+        old_mean: old.mean,
+        new_mean: new.mean,
+        change_pct: change_pct,
+        significant: significant,
+        direction: direction,
+    };
+}
+
+// Print a comparison table
+fn print_comparison_table(comparisons: []Comparison) {
+    println!("");
+    println!("  {:30} {:>10} {:>10} {:>10} {:>12}", 
+             "Benchmark", "Old (ns)", "New (ns)", "Change", "Status");
+    println!("  {}", str_repeat("-", 78));
+
+    let mut i: i64 = 0;
+    while i < len(comparisons) {
+        let c: Comparison = comparisons[i];
+        let pct_str: string = fmt_change(c.change_pct);
+        let status_str: string = fmt_status(c.direction);
+        println!("  {:30} {:>10.1} {:>10.1} {:>10} {:>12}",
+                 c.name, c.old_mean, c.new_mean, pct_str, status_str);
+        i += 1;
+    }
+    println!("");
+}
+
+fn fmt_change(pct: f64) -> string {
+    let sign: string = if pct > 0.0 { "+" } else { "" };
+    return sign + (pct as i64 as string) + "." + (((pct * 10.0) as i64) % 10 as string) + "%";
+}
+
+fn fmt_status(dir: string) -> string {
+    if dir == "improved" { return "✅ faster"; }
+    if dir == "regressed" { return "🐢 slower"; }
+    return "➡ same";
+}
+
+fn str_repeat(s: string, n: i64) -> string {
+    let mut result: string = "";
+    let mut i: i64 = 0;
+    while i < n {
+        result += s;
+        i += 1;
+    }
+    return result;
+}

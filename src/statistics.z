@@ -1,0 +1,167 @@
+// statistics.z — Statistical analysis for testicles benchmarks
+// Pure Zeta implementation. No external dependencies.
+// Computes: mean, median, std_dev, percentiles, linear regression, outlier detection.
+
+// Compute the arithmetic mean of a sample
+fn mean(samples: []f64) -> f64 {
+    if len(samples) == 0 {
+        return 0.0;
+    }
+    let mut sum: f64 = 0.0;
+    let mut i: i64 = 0;
+    while i < len(samples) {
+        sum += samples[i];
+        i += 1;
+    }
+    return sum / (len(samples) as f64);
+}
+
+// Compute population standard deviation
+fn std_dev(samples: []f64, mean_val: f64) -> f64 {
+    if len(samples) < 2 {
+        return 0.0;
+    }
+    let mut sum_sq: f64 = 0.0;
+    let mut i: i64 = 0;
+    while i < len(samples) {
+        let diff: f64 = samples[i] - mean_val;
+        sum_sq += diff * diff;
+        i += 1;
+    }
+    return (sum_sq / (len(samples) as f64)).sqrt();
+}
+
+// Compute the median (P50) of a sorted sample
+fn median(sorted: []f64) -> f64 {
+    let n: i64 = len(sorted);
+    if n == 0 {
+        return 0.0;
+    }
+    if n % 2 == 1 {
+        return sorted[n / 2];
+    }
+    return (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
+}
+
+// Compute percentile P of a sorted sample (linear interpolation)
+fn percentile(sorted: []f64, p: f64) -> f64 {
+    let n: i64 = len(sorted);
+    if n == 0 {
+        return 0.0;
+    }
+    if p <= 0.0 {
+        return sorted[0];
+    }
+    if p >= 100.0 {
+        return sorted[n - 1];
+    }
+    let idx: f64 = (p / 100.0) * ((n - 1) as f64);
+    let lo: i64 = idx as i64;
+    let hi: i64 = if lo + 1 < n { lo + 1 } else { lo };
+    let frac: f64 = idx - (lo as f64);
+    return sorted[lo] + frac * (sorted[hi] - sorted[lo]);
+}
+
+// Linear regression: fit y = slope * x + intercept to data points
+// Returns (slope, intercept, r_squared)
+fn linear_regression(x: []f64, y: []f64) -> (f64, f64, f64) {
+    let n: i64 = len(x);
+    if n < 2 {
+        return (0.0, 0.0, 0.0);
+    }
+
+    let mean_x: f64 = mean(x);
+    let mean_y: f64 = mean(y);
+
+    let mut ss_xx: f64 = 0.0;
+    let mut ss_xy: f64 = 0.0;
+    let mut ss_yy: f64 = 0.0;
+    let mut i: i64 = 0;
+    while i < n {
+        let dx: f64 = x[i] - mean_x;
+        let dy: f64 = y[i] - mean_y;
+        ss_xx += dx * dx;
+        ss_xy += dx * dy;
+        ss_yy += dy * dy;
+        i += 1;
+    }
+
+    if ss_xx == 0.0 {
+        return (0.0, mean_y, 0.0);
+    }
+
+    let slope: f64 = ss_xy / ss_xx;
+    let intercept: f64 = mean_y - slope * mean_x;
+    let r_squared: f64 = if ss_yy == 0.0 {
+        1.0
+    } else {
+        (ss_xy * ss_xy) / (ss_xx * ss_yy)
+    };
+
+    return (slope, intercept, r_squared);
+}
+
+// Identify statistical outliers using IQR method
+// Returns indices of outlier-free data
+fn remove_outliers(sorted: []f64) -> []f64 {
+    let n: i64 = len(sorted);
+    if n < 4 {
+        return sorted;
+    }
+
+    let q1: f64 = percentile(sorted, 25.0);
+    let q3: f64 = percentile(sorted, 75.0);
+    let iqr: f64 = q3 - q1;
+    let lower: f64 = q1 - 1.5 * iqr;
+    let upper: f64 = q3 + 1.5 * iqr;
+
+    let mut result: [f64] = [];
+    let mut i: i64 = 0;
+    while i < n {
+        if sorted[i] >= lower && sorted[i] <= upper {
+            result += sorted[i];
+        }
+        i += 1;
+    }
+    return result;
+}
+
+// Compute minimum of a sample
+fn min(samples: []f64) -> f64 {
+    if len(samples) == 0 {
+        return 0.0;
+    }
+    let mut m: f64 = samples[0];
+    let mut i: i64 = 1;
+    while i < len(samples) {
+        if samples[i] < m {
+            m = samples[i];
+        }
+        i += 1;
+    }
+    return m;
+}
+
+// Compute maximum of a sample
+fn max(samples: []f64) -> f64 {
+    if len(samples) == 0 {
+        return 0.0;
+    }
+    let mut m: f64 = samples[0];
+    let mut i: i64 = 1;
+    while i < len(samples) {
+        if samples[i] > m {
+            m = samples[i];
+        }
+        i += 1;
+    }
+    return m;
+}
+
+// Coefficient of variation (relative std dev) — useful for comparing dispersion
+fn cv(std_dev_val: f64, mean_val: f64) -> f64 {
+    if mean_val == 0.0 {
+        return 0.0;
+    }
+    return std_dev_val / mean_val;
+}

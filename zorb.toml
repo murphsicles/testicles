@@ -1,0 +1,9 @@
+[package]
+name = "@bench/testicles"
+version = "0.1.0"
+edition = "2026"
+description = "Statistics-driven microbenchmarking for Zeta. Pure Zeta. Zero Rust. Unrivaled."
+license = "MIT"
+repository = "https://github.com/murphsicles/testicles"
+keywords = ["benchmark", "statistics", "testing", "performance"]
+categories = ["development::benchmarking"]
